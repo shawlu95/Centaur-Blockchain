@@ -1,0 +1,26 @@
+dependencies:
+  - OpenZeppelin/openzeppelin-contracts@4.2.0
+  - smartcontractkit/chainlink-brownie-contracts@0.2.1
+compiler:
+  solc:
+    remappings:
+      - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.2.0'
+      - '@chainlink=smartcontractkit/chainlink-brownie-contracts@0.2.1'
+dotenv: .env
+wallets:
+  private_key: ${CENTAUR_ADMIN_PRIVATE_KEY}
+version:
+  latest: "CentaurV0"
+networks:
+  development:
+    verify: False
+  ganache:
+    verify: False
+  kovan:
+    verify: True
+  rinkeby:
+    verify: True
+  bsc-test:
+    verify: True
+    Centaur: '0xd376A18507f0fb677b7818fD19213b306eBD7F6A'
+    # Centaur: '0xEfe5a5981E8116A6A3E80B755E20edBdED48BAe9'
