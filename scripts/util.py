@@ -122,7 +122,7 @@ def deploy_mocks(contract_name):
 
 
 def get_proxy(version="CentaurV0"):
-    centaur = Centaur[-1]
+    centaur = get_contract("Centaur")
     client = Contract.from_abi(
         version, centaur.address, contract_to_mock[version].abi)
     return client

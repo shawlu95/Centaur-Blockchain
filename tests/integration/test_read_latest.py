@@ -1,17 +1,103 @@
 from scripts.util import (
-    get_account, get_contract,
-    wrap_entry, wrap_account, wrap_transaction,
-    Action, AccountType,
-    Account, Entry, Transaction,
+    get_account, get_contract, get_proxy,
+    wrap_account, wrap_transaction,
+    AccountType,
+    Account, Transaction, Entry,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from scripts.deploy_centaur import deploy
-from brownie import network, exceptions
+from brownie import network, config
 import pytest
+import pickle
+
+
+def test_get_proxy():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_get_proxy")
+
+    centaur = get_proxy(version=config['version']['latest'])
+    assert centaur.address == config[network.show_active()]['Centaur']
+
+
+def test_read_account():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_ingest_account")
+
+    account = get_account()
+    centaur = get_proxy(version=config['version']['latest'])
+
+    account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
+    for i, (_, val) in enumerate(account_cache.items()):
+        _, _, accountType, accountName, _ = val['account']
+        actual = Account(centaur.getAccountById(i, {"from": account}))
+        expected = Account(wrap_account(
+            owner=account.address, id=i, account_type=AccountType(accountType),
+            account_name=accountName, deleted=0
+        ))
+        assert actual == expected, \
+            f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
+
+
+def test_read_nonexist_account():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_read_nonexist_account")
+
+    account = get_account()
+    centaur = get_proxy(version=config['version']['latest'])
+
+    with pytest.raises(ValueError):
+        Account(centaur.getAccountById(10**18, {"from": account}))
+
+
+def test_read_transactions():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_injest_transactions")
+
+    limit_txn = 10
+    account = get_account()
+    centaur = get_proxy(config["version"]["latest"])
+
+    txn_cache = pickle.load(open("tests/data/trans_cache.obj", 'rb'))
+    entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
+
+    entry_id_offset = 0
+    for txn_id, (_, val) in enumerate(txn_cache.items()):
+        try:
+            actual_txn = Transaction(
+                centaur.getTransactionById(txn_id, {"from": account}))
+        except:
+            raise ValueError("Transaction does not exist!")
+
+        _, date, _, entries, _ = val['ledger_transaction']
+        expected_txn = Transaction(wrap_transaction(
+            owner=account.address, date=date, id=txn_id, deleted=0, entry_ids=entries))
+        assert actual_txn == expected_txn, \
+            f"Expected:{str(expected_txn.__dict__)} != Actual:{actual_txn.__dict__}"
+
+        for i, entry_id in enumerate(actual_txn.entry_ids):
+            actual_entry = Entry(centaur.getEntryById(
+                entry_id, {"from": account}))
+            expected_entry = Entry(entry_cache[entry_id]['ledger_entry'])
+            expected_entry.id = entry_id_offset + i
+            assert actual_entry == expected_entry, \
+                f"Expected:{str(expected_entry.__dict__)} != Actual:{actual_entry.__dict__}"
+
+        entry_id_offset += len(actual_txn.entry_ids)
+        if txn_id >= limit_txn:
+            break
+
+
+def test_read_nonexist_transaction():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_read_nonexist_transaction")
+
+    account = get_account()
+    centaur = get_proxy(version=config['version']['latest'])
+
+    with pytest.raises(ValueError):
+        Account(centaur.getTransactionById(10**18, {"from": account}))
 
 
 def test_get_account_by_id():
-    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
-        pytest.skip("Skip: test_add_ledger_account")
+    pytest.skip("Skip: test_add_ledger_account")
 
     account = get_account()
     centaur = get_contract(contract_name="CentaurV0")

@@ -4,7 +4,7 @@ from scripts.util import (
     Action, AccountType,
     Account, Entry, Transaction,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from scripts.deploy_centaur import deploy
+from scripts.deploy_centaur import deploy_centaur
 from scripts.upgrade_centaur import upgrade_centaur
 from brownie import network, exceptions, config
 import pytest
@@ -15,7 +15,7 @@ def test_add_ledger_account():
         pytest.skip("Skip: test_add_ledger_account")
 
     account = get_account(index=0)
-    deploy()
+    deploy_centaur()
     centaur = upgrade_centaur()
 
     asset_account_name = "cash"
@@ -333,7 +333,7 @@ def test_get_user_accounts():
         pytest.skip("Skip: test_get_user_accounts")
 
     account = get_account()
-    deploy()
+    deploy_centaur()
     centaur = upgrade_centaur()
 
     centaur.addLedgerAccount("Cash", 0, {"from": account})

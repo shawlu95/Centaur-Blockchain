@@ -1,5 +1,5 @@
-from scripts.util import get_account, get_contract, encode_function_data, upgrade
-from brownie import Centaur, CentaurV0, CentaurV1, CentaurAdmin, config, network, Contract
+from scripts.util import get_account, get_contract, upgrade
+from brownie import CentaurV1, config, network, Contract
 
 
 def upgrade_centaur():

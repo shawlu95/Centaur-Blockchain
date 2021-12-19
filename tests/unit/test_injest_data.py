@@ -1,13 +1,11 @@
-
-from pprint import pprint
-from scripts.upgrade_centaur import upgrade_centaur
 from scripts.util import (
     get_account, get_contract, get_proxy, upgrade,
     wrap_account, wrap_transaction,
     AccountType,
     Account, Entry, Transaction,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from scripts.deploy_centaur import deploy
+from scripts.deploy_centaur import deploy_centaur
+from scripts.upgrade_centaur import upgrade_centaur
 from brownie import network, config
 import pickle
 import pytest
@@ -18,7 +16,7 @@ def test_injest_accounts():
         pytest.skip("Skip: test_injest_accounts")
 
     account = get_account(index=0)
-    deploy()
+    deploy_centaur()
     centaur = upgrade_centaur()
 
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
