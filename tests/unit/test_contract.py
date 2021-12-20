@@ -50,9 +50,8 @@ def test_add_ledger_account():
 def test_add_duplicate_ledger_account():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_add_duplicate_ledger_account")
-
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     liability_account_name = "debt"
@@ -67,7 +66,7 @@ def test_add_transaction():
         pytest.skip("Skip: test_add_transaction")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     centaur.addLedgerTransaction(365, [
@@ -76,7 +75,7 @@ def test_add_transaction():
         wrap_entry(id=1, ledger_account_id=1,
                    action=Action.CREDIT, amount=50),
     ], {"from": account})
-    assert centaur.getUserTransaction({"from": account}) == (0, )
+    assert centaur.getUserTransactionIds({"from": account}) == (0, )
     assert centaur.getUserTransactionCount({"from": account}) == 1
 
     txn = Transaction(centaur.getTransactionById(0, {"from": account}))
@@ -105,7 +104,7 @@ def test_add_multi_entry_transaction():
         pytest.skip("Skip: test_add_multi_entry_transaction")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     centaur.addLedgerTransaction(0, [
@@ -116,7 +115,7 @@ def test_add_multi_entry_transaction():
         wrap_entry(id=2, ledger_account_id=1,
                    action=Action.CREDIT, amount=25),
     ], {"from": account})
-    assert centaur.getUserTransaction({"from": account}) == (0, )
+    assert centaur.getUserTransactionIds({"from": account}) == (0, )
     assert centaur.getUserTransactionCount({"from": account}) == 1
     txn = Transaction(centaur.getTransactionById(0, {"from": account}))
     expected_txn = Transaction(wrap_transaction(
@@ -151,7 +150,7 @@ def test_add_transaction_unbalanced():
         pytest.skip("Skip: test_add_transaction_unbalanced")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
@@ -168,7 +167,7 @@ def test_delete_ledger_account():
         pytest.skip("Skip: test_delete_ledger_account")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     assert centaur.getAccountReferenceCount(0, {"from": account}) == 0
@@ -187,7 +186,7 @@ def test_delete_ledger_account_with_reference():
         pytest.skip("Skip: test_delete_ledger_account_with_reference")
 
     test_add_transaction()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
@@ -200,7 +199,7 @@ def test_delete_transaction_not_owner():
         pytest.skip("Skip: test_delete_transaction_not_owner")
 
     test_add_transaction()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     bad_account = get_account(index=1)
 
     with pytest.raises(exceptions.VirtualMachineError):
@@ -212,7 +211,7 @@ def test_delete_transaction_and_account():
         pytest.skip("Skip: test_delete_transaction_and_account")
 
     test_add_multi_entry_transaction()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     assert centaur.getAccountReferenceCount(0, {"from": account}) == 1
@@ -253,7 +252,7 @@ def test_add_transaction_unknown_ledger_account():
         pytest.skip("Skip: test_add_transaction_unknown_ledger_account")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
@@ -270,7 +269,7 @@ def test_add_transaction_not_ledger_account_owner():
         pytest.skip("Skip: test_add_transaction_not_ledger_account_owner")
 
     test_add_ledger_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     bad_account = get_account(index=1)
 
     with pytest.raises(exceptions.VirtualMachineError):
@@ -287,7 +286,7 @@ def test_get_entry_by_id():
         pytest.skip("Skip: test_get_entry_by_id")
 
     test_add_transaction()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     other_account = get_account(index=1)
 
     entry = Entry(centaur.getEntryById(0, {"from": other_account}))
@@ -303,7 +302,7 @@ def test_get_entries_by_transaction_id():
         pytest.skip("Skip: test_get_entries_by_transaction_id")
 
     test_add_multi_entry_transaction()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
     raw_entries = centaur.getUserEntriesForTransaction(0, {"from": account})
@@ -349,3 +348,111 @@ def test_get_user_accounts():
     print(ledger_accounts_ids)
     assert len(ledger_accounts_ids) == 1
     assert ledger_accounts_ids[0] == 2
+
+
+def test_add_ledger_transactions():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_get_user_accounts")
+
+    test_add_ledger_account()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+    account = get_account(index=0)
+
+    txnSizes = [2, 3]
+    dates = [365, 730]
+    ledgerEntries = [
+        wrap_entry(id=0, ledger_account_id=0,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=1, ledger_account_id=1,
+                   action=Action.CREDIT, amount=10),
+        wrap_entry(id=2, ledger_account_id=0,
+                   action=Action.DEBIT, amount=50),
+        wrap_entry(id=3, ledger_account_id=1,
+                   action=Action.CREDIT, amount=25),
+        wrap_entry(id=4, ledger_account_id=1,
+                   action=Action.CREDIT, amount=25)
+    ]
+
+    centaur.addLedgerTransactions(
+        txnSizes, dates, ledgerEntries, {"from": account})
+
+    txn = Transaction(centaur.getTransactionById(0))
+    expected_txn = Transaction(wrap_transaction(
+        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+    assert txn == expected_txn, \
+        f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
+
+    txn = Transaction(centaur.getTransactionById(1))
+    expected_txn = Transaction(wrap_transaction(
+        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))
+    assert txn == expected_txn, \
+        f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
+
+
+def test_get_ledger_transactions():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_get_user_accounts")
+
+    test_add_ledger_transactions()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+    account = get_account(index=0)
+
+    txns, entries = centaur.getUserTransactionEntries()
+
+    assert len(txns) == 2
+    assert len(entries) == 5
+
+    assert Transaction(txns[0]) == Transaction(wrap_transaction(
+        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+
+    assert Transaction(txns[1]) == Transaction(wrap_transaction(
+        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))
+
+    assert entries == (
+        wrap_entry(id=0, ledger_account_id=0,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=1, ledger_account_id=1,
+                   action=Action.CREDIT, amount=10),
+        wrap_entry(id=2, ledger_account_id=0,
+                   action=Action.DEBIT, amount=50),
+        wrap_entry(id=3, ledger_account_id=1,
+                   action=Action.CREDIT, amount=25),
+        wrap_entry(id=4, ledger_account_id=1,
+                   action=Action.CREDIT, amount=25)
+    )
+
+
+def test_get_entry_by_ids():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_get_user_accounts")
+
+    test_add_ledger_transactions()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+
+    entries = centaur.getEntryByIds([0, 1, 4])
+
+    assert entries == (
+        wrap_entry(id=0, ledger_account_id=0,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=1, ledger_account_id=1,
+                   action=Action.CREDIT, amount=10),
+        wrap_entry(id=4, ledger_account_id=1,
+                   action=Action.CREDIT, amount=25)
+    )
+
+
+def test_get_transaction_by_ids():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_get_user_accounts")
+
+    test_add_ledger_transactions()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+    account = get_account(index=0)
+
+    txns = centaur.getTransactionByIds([0, 1])
+
+    assert Transaction(txns[0]) == Transaction(wrap_transaction(
+        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+
+    assert Transaction(txns[1]) == Transaction(wrap_transaction(
+        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))

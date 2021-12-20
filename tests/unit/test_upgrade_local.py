@@ -1,8 +1,8 @@
 from scripts.util import (
-    get_account, encode_function_data, upgrade,
-    AccountType,
+    get_account, encode_function_data, upgrade, wrap_account,
+    AccountType, Account,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from brownie import network, CentaurV0, CentaurV1, CentaurAdmin, Centaur, Contract, exceptions
+from brownie import network, CentaurV0, CentaurV1, CentaurV2, CentaurAdmin, Centaur, Contract, exceptions
 import pytest
 
 
@@ -35,15 +35,13 @@ def test_proxy_delegates_call():
         proxy_centaur.addLedgerAccount(
             "expense", AccountType.TEMPORARY.value, {"from": account})
     assert proxy_centaur.getAccountCount() == 1
-    return proxy_centaur
 
 
-def test_proxy_upgrade():
+def test_proxy_upgrade_v1():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_proxy_delegates_call")
 
-    proxy_centaur = test_proxy_delegates_call()
-    assert proxy_centaur.getAccountCount() == 1
+    test_proxy_delegates_call()
 
     account = get_account(index=0)
     centaurV1 = CentaurV1.deploy({"from": account})
@@ -56,7 +54,43 @@ def test_proxy_upgrade():
     proxy_centaur = Contract.from_abi(
         "CentaurV1", proxy.address, CentaurV1.abi)
 
-    assert proxy_centaur.getAccountCount() == 1
     proxy_centaur.addLedgerAccount(
         "expense", AccountType.TEMPORARY.value, {"from": account})
     assert proxy_centaur.getAccountCount() == 2
+
+    ledger_account = Account(proxy_centaur.getAccountById(1))
+    acc_expected = Account(wrap_account(
+        owner=account.address, id=1, account_type=AccountType.TEMPORARY, account_name="expense", deleted=0))
+    assert ledger_account == acc_expected
+
+
+def test_proxy_upgrade_v2():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_proxy_delegates_call")
+
+    test_proxy_upgrade_v1()
+
+    account = get_account(index=0)
+    centaurV2 = CentaurV2.deploy({"from": account})
+
+    proxy = Centaur[-1]
+    proxy_admin = CentaurAdmin[-1]
+
+    upgrade(account, proxy, centaurV2, proxy_admin_contract=proxy_admin)
+
+    proxy_centaur = Contract.from_abi(
+        "CentaurV2", proxy.address, CentaurV2.abi)
+
+    ledger_account = Account(proxy_centaur.getAccountById(1))
+    acc_expected = Account(wrap_account(
+        owner=account.address, id=1, account_type=AccountType.TEMPORARY, account_name="expense", deleted=0))
+    assert ledger_account == acc_expected
+
+    proxy_centaur.updateLedgerAccount(
+        1, "debt", AccountType.LIABILITY.value, {"from": account})
+
+    ledger_account = Account(proxy_centaur.getAccountById(1))
+    acc_expected = Account(wrap_account(
+        owner=account.address, id=1, account_type=AccountType.LIABILITY, account_name="debt", deleted=0))
+    print(ledger_account.__dict__)
+    assert ledger_account == acc_expected

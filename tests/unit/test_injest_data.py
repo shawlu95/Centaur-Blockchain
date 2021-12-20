@@ -41,9 +41,9 @@ def test_injest_transactions():
     limit_txn = 100
     test_injest_accounts()
     account = get_account(index=0)
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
-    txn_cache = pickle.load(open("tests/data/trans_cache.obj", 'rb'))
+    txn_cache = pickle.load(open("tests/data/transaction_cache.obj", 'rb'))
     entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
 
     entry_id_offset = 0

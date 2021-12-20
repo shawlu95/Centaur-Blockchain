@@ -18,17 +18,72 @@ def test_ingest_account():
 
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
-        _, _, accountType, accountName, _ = val['account']
-        centaur.addLedgerAccount(accountName, accountType, {"from": account})
-        assert centaur.getUserAccountCount({"from": account}) == (i + 1)
+        try:
+            centaur.getAccountById(i, {"from": account})
+            continue
+        except:
+            _, _, accountType, accountName, _ = val['account']
+            centaur.addLedgerAccount(
+                accountName, accountType, {"from": account})
 
-        actual = Account(centaur.getAccountById(i, {"from": account}))
-        expected = Account(wrap_account(
-            owner=account.address, id=i, account_type=AccountType(accountType),
-            account_name=accountName, deleted=0
-        ))
-        assert actual == expected, \
-            f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
+            actual = Account(centaur.getAccountById(i, {"from": account}))
+            expected = Account(wrap_account(
+                owner=account.address, id=i, account_type=AccountType(
+                    accountType),
+                account_name=accountName, deleted=0
+            ))
+            assert actual == expected, \
+                f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
+
+
+def test_injest_transactions_batch():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_injest_transactions")
+
+    limit_txn = 50
+    account = get_account()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+
+    txn_cache = pickle.load(open("tests/data/transaction_cache.obj", 'rb'))
+    entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
+
+    exist_txn = centaur.getUserTransactionIds({"from": account})
+    print(exist_txn)
+
+    txn_id_offset = len(exist_txn)
+    entry_id_offset = centaur.getEntriesCount()
+
+    txn_sizes = []
+    dates = []
+    ledger_entries = []
+
+    for txn_id, val in txn_cache.items():
+        if len(txn_sizes) >= limit_txn:
+            break
+        if txn_id not in exist_txn:
+            _, date, _, entries, _ = val['ledger_transaction']
+
+            txn_sizes.append(len(entries))
+            dates.append(date)
+            ledger_entries += [entry_cache[entry_id]['ledger_entry']
+                               for entry_id in entries]
+
+            print(val)
+    print(txn_sizes)
+    print(dates)
+    print(ledger_entries)
+
+    centaur.addLedgerTransactions(
+        txn_sizes, dates, ledger_entries, {"from": account})
+
+    assert centaur.getUserTransactionCount(
+        {"from": account}) == txn_id_offset + limit_txn
+    assert centaur.getEntriesCount() == entry_id_offset + len(ledger_entries)
+
+
+def test_injest_transactions_batch_n():
+    for i in range(38):
+        test_injest_transactions_batch()
 
 
 def test_injest_transactions():
@@ -37,7 +92,7 @@ def test_injest_transactions():
 
     limit_txn = 5000
     account = get_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
     txn_cache = pickle.load(open("tests/data/trans_cache.obj", 'rb'))
     entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
@@ -77,11 +132,34 @@ def test_injest_transactions():
             break
 
 
+def test_update_ledger_account():
+    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_injest_transactions")
+
+    account = get_account()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+
+    actual = Account(centaur.getAccountById(3))
+    expected = Account(wrap_account(owner=account.address, id=3,
+                       account_type=AccountType.ASSET, account_name="SFCU Credit", deleted=0))
+    assert actual == expected, \
+        f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
+
+    centaur.updateLedgerAccountType(
+        3, AccountType.LIABILITY.value, {"from": account})
+
+    actual = Account(centaur.getAccountById(3))
+    expected = Account(wrap_account(owner=account.address, id=3,
+                       account_type=AccountType.LIABILITY, account_name="SFCU Credit", deleted=0))
+    assert actual == expected, \
+        f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
+
+
 def test_add_ledger_account_bsc():
     pytest.skip("Skip: test_add_ledger_account")
 
     account = get_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
     asset_account_name = "cash"
     centaur.addLedgerAccount(
@@ -116,7 +194,7 @@ def test_add_duplicate_ledger_account():
     pytest.skip("Skip: test_add_duplicate_ledger_account")
 
     account = get_account(index=0)
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
     liability_account_name = "debt"
     with pytest.raises(exceptions.VirtualMachineError):
@@ -129,7 +207,7 @@ def test_add_transaction():
     pytest.skip("Skip: test_add_transaction")
 
     account = get_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
     centaur.addLedgerTransaction(365, [
         wrap_entry(id=0, ledger_account_id=0,
@@ -137,7 +215,7 @@ def test_add_transaction():
         wrap_entry(id=1, ledger_account_id=1,
                    action=Action.CREDIT, amount=50),
     ], {"from": account})
-    assert centaur.getUserTransaction({"from": account}) == (0, )
+    assert centaur.getUserTransactionIds({"from": account}) == (0, )
     assert centaur.getUserTransactionCount({"from": account}) == 1
 
     txn = Transaction(centaur.getTransactionById(0, {"from": account}))
@@ -165,7 +243,7 @@ def test_delete_transaction_not_owner():
     pytest.skip("Skip: test_delete_transaction_not_owner")
 
     bad_account = get_account(id='Candy')
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
 
     try:
         centaur.deleteTransactionById(0, {"from": bad_account})

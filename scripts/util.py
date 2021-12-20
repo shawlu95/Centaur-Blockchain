@@ -6,9 +6,15 @@ from brownie import (
     CentaurAdmin,
     CentaurV0,
     CentaurV1,
+    CentaurV2,
+    CentaurV3,
+    CentaurV4,
+    CentaurV5,
     Contract)
 from enum import Enum
 import eth_utils
+
+DECIMAL = 9
 
 LOCAL_BLOCKCHAIN_DEV = ["development", "ganache-local"]
 FORKED_LOCAL_ENV = ['mainnet-fork', 'mainnet-fork-dev']
@@ -27,24 +33,6 @@ class AccountType(Enum):
     TEMPORARY = 3
 
 
-class Account:
-    def __init__(self, data):
-        self.owner = data[0]
-        self.id = data[1]
-        self.account_type = AccountType(data[2])
-        self.account_name = data[3]
-        self.deleted = data[4]
-
-    def __eq__(self, other):
-        return (
-            self.owner == other.owner
-            and self.id == other.id
-            and self.account_type == other.account_type
-            and self.account_name == other.account_name
-            and self.deleted == other.deleted
-        )
-
-
 class Entry:
     def __init__(self, data):
         self.id = data[0]
@@ -59,6 +47,50 @@ class Entry:
             and self.action == other.action
             and self.amount == other.amount
         )
+
+
+class Account:
+    def __init__(self, data):
+        self.owner = data[0]
+        self.id = data[1]
+        self.account_type = AccountType(data[2])
+        self.account_name = data[3]
+        self.deleted = data[4]
+
+        self.debit = 0
+        self.credit = 0
+
+    def __eq__(self, other):
+        return (
+            self.owner == other.owner
+            and self.id == other.id
+            and self.account_type == other.account_type
+            and self.account_name == other.account_name
+            and self.deleted == other.deleted
+        )
+
+    def process_entry(self, entry: Entry):
+        assert entry.ledger_account_id == self.id, "Ledger Account ID not matched!"
+        if entry.action == Action.DEBIT:
+            self.debit += entry.amount
+        elif entry.action == Action.CREDIT:
+            self.credit += entry.amount
+        else:
+            raise ValueError("Unknown Action")
+
+    def usd_balance(self):
+        if self.account_type == AccountType.ASSET:
+            balance = self.debit - self.credit
+        else:
+            balance = - self.debit + self.credit
+
+        return balance / 10 ** DECIMAL
+
+    def formatted_str(self):
+        balance = self.usd_balance()
+        if balance >= 0:
+            return "$ {:,.2f}".format(balance)
+        return "($ {:,.2f})".format(- balance)
 
 
 class Transaction:
@@ -107,14 +139,18 @@ contract_to_mock = {
     "Centaur": Centaur,
     "CentaurV0": CentaurV0,
     "CentaurV1": CentaurV1,
+    "CentaurV2": CentaurV2,
+    "CentaurV3": CentaurV3,
+    "CentaurV4": CentaurV4,
+    "CentaurV5": CentaurV5,
     "CentaurAdmin": CentaurAdmin
 }
 
 
 def deploy_mocks(contract_name):
     account = get_account()
-    # if contract_name == "Centaur":
-    #     Centaur.deploy({"from": account})
+    if contract_name == "Centaur":
+        Centaur.deploy({"from": account})
     if contract_name == "Centaur":
         CentaurV0.deploy({"from": account})
     if contract_name == "Centaur":
