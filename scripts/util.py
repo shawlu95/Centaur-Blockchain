@@ -61,9 +61,6 @@ class Account:
         self.debit = data[5]
         self.credit = data[6]
 
-        self.debit = 0
-        self.credit = 0
-
     def __eq__(self, other):
         return (
             self.owner == other.owner

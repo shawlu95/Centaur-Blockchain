@@ -96,6 +96,15 @@ def test_add_transaction():
     assert entry_1 == expected_entry_1, \
         f"Expected:{str(expected_entry_1.__dict__)} != Actual:{entry_1.__dict__}"
 
+    liability_account_name = "debt"
+    account_1 = Account(centaur.getAccountByIds([1])[0])
+    expected_1 = Account(wrap_account(
+        owner=account.address, id=1, account_type=AccountType.LIABILITY,
+        account_name=liability_account_name, deleted=0, debit=10, credit=0
+    ))
+    assert account_1 == expected_1, \
+        f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
+
 
 def test_add_multi_entry_transaction():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
