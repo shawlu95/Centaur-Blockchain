@@ -27,11 +27,11 @@ def test_ingest_account():
             centaur.addLedgerAccount(
                 accountName, accountType, {"from": account})
 
-            actual = Account(centaur.getAccountById(i, {"from": account}))
+            actual = Account(centaur.getAccountByIds([i])[0])
             expected = Account(wrap_account(
                 owner=account.address, id=i, account_type=AccountType(
                     accountType),
-                account_name=accountName, deleted=0
+                account_name=accountName, deleted=0, debit=0, credit=0
             ))
             assert actual == expected, \
                 f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
@@ -141,7 +141,7 @@ def test_update_ledger_account():
 
     actual = Account(centaur.getAccountById(3))
     expected = Account(wrap_account(owner=account.address, id=3,
-                       account_type=AccountType.ASSET, account_name="SFCU Credit", deleted=0))
+                       account_type=AccountType.ASSET, account_name="SFCU Credit", deleted=0, debit=0, credit=0))
     assert actual == expected, \
         f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
 
@@ -150,7 +150,7 @@ def test_update_ledger_account():
 
     actual = Account(centaur.getAccountById(3))
     expected = Account(wrap_account(owner=account.address, id=3,
-                       account_type=AccountType.LIABILITY, account_name="SFCU Credit", deleted=0))
+                       account_type=AccountType.LIABILITY, account_name="SFCU Credit", deleted=0, debit=0, credit=0))
     assert actual == expected, \
         f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
 
@@ -169,7 +169,7 @@ def test_add_ledger_account_bsc():
     account_0 = Account(centaur.getAccountById(0, {"from": account}))
     expected_0 = Account(wrap_account(
         owner=account.address, id=0, account_type=AccountType.ASSET,
-        account_name=asset_account_name, deleted=0
+        account_name=asset_account_name, deleted=0, debit=0, credit=0
     ))
     assert account_0 == expected_0, \
         f"Expected:{str(expected_0.__dict__)} != Actual:{account_0.__dict__}"
@@ -182,7 +182,7 @@ def test_add_ledger_account_bsc():
     account_1 = Account(centaur.getAccountById(1, {"from": account}))
     expected_1 = Account(wrap_account(
         owner=account.address, id=1, account_type=AccountType.LIABILITY,
-        account_name=liability_account_name, deleted=0
+        account_name=liability_account_name, deleted=0, debit=0, credit=0
     ))
     assert account_1 == expected_1, \
         f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"

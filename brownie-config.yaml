@@ -7,6 +7,7 @@ compiler:
       - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.2.0'
       - '@chainlink=smartcontractkit/chainlink-brownie-contracts@0.2.1'
 dotenv: .env
+front_end_src_dir: ${FRONT_END_SRC_DIR}
 wallets:
   private_key: ${CENTAUR_ADMIN_PRIVATE_KEY_DEV}
 networks:
@@ -40,10 +41,11 @@ networks:
     CentaurV5: '0x057B56B9228c35a309B1bd20AC9a569e72b30f20'
   polygon-test:
     verify: True
-    latest: "CentaurV6"
-    Centaur: '0x965516A404439FaA0Ab2a79B65Ec39A66855706F'
-    CentaurAdmin: '0x06DA78824018d281260d4919710965AfdB93A8C2'
+    latest: "CentaurV7"
+    Centaur: '0x18866dC8e98BD59349607F20E3aAC27081e4498e'
+    CentaurAdmin: '0xBA14D60aA8219b127B148ffB327fEb053ab8AE6c'
     CentaurV3: '0x5FE138e58Bd8DeF2fA9FF8edE024D195aE1DA6ec'
     CentaurV4: '0x8C582894d4A566a16b1EfE1b5C53aBf8F0538Fa2'
     CentaurV5: '0x6688B3FacCB8B2318aB791BF0351C15bdD42D26E'
     CentaurV6: '0x9C705dbb442938dB80F27cAFB0d8CE49626641aD'
+    CentaurV7: '0x2D5D347B79c3Ac5580Bd03DAa03e54Ed6B7566c2'
