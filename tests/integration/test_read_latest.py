@@ -22,7 +22,8 @@ def test_read_account():
         pytest.skip("Skip: test_ingest_account")
 
     account = get_account()
-    centaur = get_proxy(version=config['version']['latest'])
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]['latest'])
 
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
@@ -30,7 +31,7 @@ def test_read_account():
         actual = Account(centaur.getAccountByIds([i])[0])
         expected = Account(wrap_account(
             owner=account.address, id=i, account_type=AccountType(accountType),
-            account_name=accountName, deleted=0
+            account_name=accountName, deleted=0, debit=actual.debit, credit=actual.credit
         ))
         assert actual == expected, \
             f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
@@ -41,7 +42,8 @@ def test_read_nonexist_account():
         pytest.skip("Skip: test_read_nonexist_account")
 
     account = get_account()
-    centaur = get_proxy(version=config['version']['latest'])
+    centaur = get_proxy(
+        vversion=config["networks"][network.show_active()]['latest'])
 
     with pytest.raises(ValueError):
         Account(centaur.getAccountByIds([10**18])[0])
@@ -51,11 +53,12 @@ def test_read_transactions():
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_injest_transactions")
 
-    limit_txn = 10
+    limit_txn = 1000
     account = get_account()
-    centaur = get_proxy(config["version"]["latest"])
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]['latest'])
 
-    txn_cache = pickle.load(open("tests/data/trans_cache.obj", 'rb'))
+    txn_cache = pickle.load(open("tests/data/transaction_cache.obj", 'rb'))
     entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
 
     entry_id_offset = 0

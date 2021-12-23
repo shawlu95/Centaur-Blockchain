@@ -1,4 +1,4 @@
-from scripts.util import Entry, get_account, encode_function_data, get_proxy, wrap_transaction, Transaction, Account
+from scripts.util import AccountType, Entry, get_account, encode_function_data, get_proxy, wrap_account, wrap_transaction, Transaction, Account
 from brownie import Centaur, CentaurV0, CentaurAdmin, config, network, Contract
 import os
 import pickle
@@ -15,8 +15,8 @@ def read_all_txns():
     centaur = get_proxy(
         version=config["networks"][network.show_active()]["latest"])
 
-    txn_count = centaur.getUserTransactionCount({"from": account})
-    txn_ids = centaur.getUserTransactionIds({"from": account})
+    txn_count = centaur.getUserTransactionCount(account.address)
+    txn_ids = centaur.getUserTransactionIds(account.address)
 
     print(f"User {account.address} has transaction: {txn_count}")
 
@@ -47,24 +47,19 @@ def read_centaur():
     transaction_cache_ids = set({item.id for item in transaction_cache})
     entry_cache_ids = set({item.id for item in entry_cache})
 
-    txn_count = centaur.getUserTransactionCount({"from": account})
-    txn_ids = centaur.getUserTransactionIds({"from": account})
+    txn_count = centaur.getUserTransactionCount(account.address)
+    txn_ids = centaur.getUserTransactionIds(account.address)
     txn_ids_from_chain = [
         id for id in transaction_cache_ids if id not in set(txn_ids)]
 
     print(f"User {account.address} has transaction: {txn_count}")
-    print(centaur.getUserTransactionEntries())
-    txns, entries = centaur.getUserTransactionEntries()
+    txns, entries = centaur.getUserTransactionEntries(account.address)
     print(len(txns), len(entries))
 
-    account_ids = centaur.getUserAccounts({"from": account})
-    for account_id in account_ids:
-        if account_id in account_cache_ids:
-            continue
-        account_cache.append(Account(centaur.getAccountById(account_id)))
+    account_cache = list(map(lambda x: Account(
+        x), centaur.getUserAccounts(account.address)))
 
     print(txn_ids_from_chain)
-    print(centaur.getTransactionByIds(txn_ids_from_chain))
     on_chain_txns = list(map(lambda x: Transaction(
         x), centaur.getTransactionByIds(txn_ids_from_chain)))
     print(on_chain_txns)
@@ -72,7 +67,8 @@ def read_centaur():
 
     entry_ids_from_chain = []
     for txn in txns:
-        entry_ids_from_chain += txn.entries
+        txn = Transaction(txn)
+        entry_ids_from_chain += txn.entry_ids
     on_chain_entries = list(
         map(lambda x: Entry(x), centaur.getEntryByIds(entry_ids_from_chain)))
     print(on_chain_entries)
@@ -93,7 +89,10 @@ def check_same():
         open(os.path.join(remote_cache_dir, cache), 'rb'))
     local_copy = pickle.load(open(os.path.join(local_cache_dir, cache), 'rb'))
     for item in remote_copy:
-        ref = Account(local_copy[item.id]['account'])
+        owner, id, account_type, account_name, deleted = local_copy[
+            item.id]['account']
+        ref = Account(wrap_account(owner=owner, id=id, account_type=AccountType(
+            account_type), account_name=account_name, deleted=deleted, debit=0, credit=0))
         item.owner = ''
         assert item == ref
 
