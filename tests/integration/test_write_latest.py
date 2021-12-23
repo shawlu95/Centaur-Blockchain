@@ -20,7 +20,7 @@ def test_ingest_account():
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
         try:
-            centaur.getAccountById(i, {"from": account})
+            centaur.getAccountByIds([i])
             continue
         except:
             _, _, accountType, accountName, _ = val['account']
@@ -48,7 +48,7 @@ def test_injest_transactions_batch():
     txn_cache = pickle.load(open("tests/data/transaction_cache.obj", 'rb'))
     entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
 
-    exist_txn = centaur.getUserTransactionIds({"from": account})
+    exist_txn = centaur.getUserTransactionIds(account.address)
     print(exist_txn)
 
     txn_id_offset = len(exist_txn)
@@ -78,7 +78,7 @@ def test_injest_transactions_batch():
         txn_sizes, dates, ledger_entries, {"from": account})
 
     assert centaur.getUserTransactionCount(
-        {"from": account}) == txn_id_offset + limit_txn
+        account.address) == txn_id_offset + limit_txn
     assert centaur.getEntriesCount() == entry_id_offset + len(ledger_entries)
 
 
