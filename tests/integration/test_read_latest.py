@@ -27,7 +27,7 @@ def test_read_account():
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
         _, _, accountType, accountName, _ = val['account']
-        actual = Account(centaur.getAccountById(i, {"from": account}))
+        actual = Account(centaur.getAccountByIds([i])[0])
         expected = Account(wrap_account(
             owner=account.address, id=i, account_type=AccountType(accountType),
             account_name=accountName, deleted=0
@@ -44,7 +44,7 @@ def test_read_nonexist_account():
     centaur = get_proxy(version=config['version']['latest'])
 
     with pytest.raises(ValueError):
-        Account(centaur.getAccountById(10**18, {"from": account}))
+        Account(centaur.getAccountByIds([10**18])[0])
 
 
 def test_read_transactions():
@@ -62,7 +62,7 @@ def test_read_transactions():
     for txn_id, (_, val) in enumerate(txn_cache.items()):
         try:
             actual_txn = Transaction(
-                centaur.getTransactionById(txn_id, {"from": account}))
+                centaur.getTransactionById([txn_id], {"from": account})[0])
         except:
             raise ValueError("Transaction does not exist!")
 
@@ -73,8 +73,7 @@ def test_read_transactions():
             f"Expected:{str(expected_txn.__dict__)} != Actual:{actual_txn.__dict__}"
 
         for i, entry_id in enumerate(actual_txn.entry_ids):
-            actual_entry = Entry(centaur.getEntryById(
-                entry_id, {"from": account}))
+            actual_entry = Entry(centaur.getEntryById([entry_id])[0])
             expected_entry = Entry(entry_cache[entry_id]['ledger_entry'])
             expected_entry.id = entry_id_offset + i
             assert actual_entry == expected_entry, \
@@ -93,7 +92,7 @@ def test_read_nonexist_transaction():
     centaur = get_proxy(version=config['version']['latest'])
 
     with pytest.raises(ValueError):
-        Account(centaur.getTransactionById(10**18, {"from": account}))
+        Account(centaur.getTransactionByIds([10**18], {"from": account})[0])
 
 
 def test_get_account_by_id():
@@ -103,7 +102,7 @@ def test_get_account_by_id():
     centaur = get_contract(contract_name="CentaurV0")
 
     asset_account_name = "cash"
-    account_0 = Account(centaur.getAccountById(0, {"from": account}))
+    account_0 = Account(centaur.getAccountByIds([0])[0])
     expected_0 = Account(wrap_account(
         owner=account.address, id=0, account_type=AccountType.ASSET,
         account_name=asset_account_name, deleted=0

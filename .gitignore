@@ -3,3 +3,5 @@ build/*
 *.pyc
 data/*
 tests/data/*
+front_end/src/chain-info/*
+front_end/src/brownie-config.json

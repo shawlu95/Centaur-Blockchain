@@ -3,21 +3,17 @@ from brownie import config, network, Contract
 
 
 def upgrade_centaur():
-    verify = config["networks"][network.show_active()]["verify"]
     latest_version = config["networks"][network.show_active()]["latest"]
-    CentaurNew = contract_to_mock[latest_version]
+
     account = get_account()
-    centaur_new = CentaurNew.deploy(
-        {"from": account},
-        publish_source=verify
-    )
-    # centaur_new = get_contract(latest_version)
-
-    centaur = get_contract("Centaur")
+    centaur_implementation = get_contract(latest_version)
+    centaur_proxy = get_contract("Centaur")
     centaur_admin = get_contract("CentaurAdmin")
-    upgrade(account, centaur, centaur_new.address, centaur_admin)
+    upgrade(account, centaur_proxy,
+            centaur_implementation.address, centaur_admin)
 
-    client = Contract.from_abi(latest_version, centaur.address, CentaurNew.abi)
+    client = Contract.from_abi(
+        latest_version, centaur_proxy.address, centaur_implementation.abi)
     return client
 
 

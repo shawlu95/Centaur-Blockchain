@@ -1,11 +1,13 @@
-from scripts.util import get_account, encode_function_data, get_contract
-from brownie import Centaur, CentaurV5, CentaurAdmin, config, network, Contract
+from scripts.util import get_account, encode_function_data, get_contract, contract_to_mock
+from brownie import Centaur, CentaurV6, CentaurAdmin, config, network, Contract
 
 
 def deploy_centaur():
-    verify = config["networks"][network.show_active()]["verify"]
+    current_network = network.show_active()
+    verify = config["networks"][current_network]["verify"]
+    latest = config["networks"][current_network]["latest"]
     account = get_account()
-    centaur_v5 = CentaurV5.deploy(
+    centaur_implementation = contract_to_mock[latest].deploy(
         {"from": account},
         publish_source=verify
     )
@@ -13,11 +15,12 @@ def deploy_centaur():
     centaur_admin = CentaurAdmin.deploy(
         {"from": account}, publish_source=verify)
 
-    centaur = Centaur.deploy(
-        centaur_v5.address, centaur_admin.address, encode_function_data(),
+    centaur_proxy = Centaur.deploy(
+        centaur_implementation.address, centaur_admin.address, encode_function_data(),
         {"from": account}, publish_source=verify)
 
-    client = Contract.from_abi("CentaurV3", centaur.address, centaur_v5.abi)
+    client = Contract.from_abi(
+        latest, centaur_proxy.address, centaur_implementation.abi)
     return client
 
 

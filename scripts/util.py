@@ -10,6 +10,8 @@ from brownie import (
     CentaurV3,
     CentaurV4,
     CentaurV5,
+    CentaurV6,
+    CentaurV7,
     Contract)
 from enum import Enum
 import eth_utils
@@ -56,6 +58,8 @@ class Account:
         self.account_type = AccountType(data[2])
         self.account_name = data[3]
         self.deleted = data[4]
+        self.debit = data[5]
+        self.credit = data[6]
 
         self.debit = 0
         self.credit = 0
@@ -67,6 +71,8 @@ class Account:
             and self.account_type == other.account_type
             and self.account_name == other.account_name
             and self.deleted == other.deleted
+            and self.debit == other.debit
+            and self.credit == other.credit
         )
 
     def process_entry(self, entry: Entry):
@@ -115,8 +121,8 @@ def wrap_entry(id, ledger_account_id, action: Action, amount):
     return (id, ledger_account_id, action.value, amount)
 
 
-def wrap_account(owner, id, account_type: AccountType, account_name, deleted):
-    return (owner, id, account_type.value, account_name, deleted)
+def wrap_account(owner, id, account_type: AccountType, account_name, deleted, debit, credit):
+    return (owner, id, account_type.value, account_name, deleted, debit, credit)
 
 
 def wrap_transaction(owner, date, id, entry_ids, deleted):
@@ -143,6 +149,8 @@ contract_to_mock = {
     "CentaurV3": CentaurV3,
     "CentaurV4": CentaurV4,
     "CentaurV5": CentaurV5,
+    "CentaurV6": CentaurV6,
+    "CentaurV7": CentaurV7,
     "CentaurAdmin": CentaurAdmin
 }
 
@@ -151,10 +159,6 @@ def deploy_mocks(contract_name):
     account = get_account()
     if contract_name == "Centaur":
         Centaur.deploy({"from": account})
-    if contract_name == "Centaur":
-        CentaurV0.deploy({"from": account})
-    if contract_name == "Centaur":
-        CentaurV1.deploy({"from": account})
 
 
 def get_proxy(version="CentaurV0"):

@@ -10,6 +10,22 @@ def read_cache(path):
     return []
 
 
+def read_all_txns():
+    account = get_account()
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]["latest"])
+
+    txn_count = centaur.getUserTransactionCount({"from": account})
+    txn_ids = centaur.getUserTransactionIds({"from": account})
+
+    print(f"User {account.address} has transaction: {txn_count}")
+
+    on_chain_txns = list(map(lambda x: Transaction(
+        x), centaur.getTransactionByIds(txn_ids)))
+    for txn in on_chain_txns:
+        print(txn.__dict__)
+
+
 def read_centaur():
     account = get_account()
     centaur = get_proxy(
@@ -86,6 +102,7 @@ def check_same():
         open(os.path.join(remote_cache_dir, cache), 'rb'))
     local_copy = pickle.load(open(os.path.join(local_cache_dir, cache), 'rb'))
     for item in remote_copy:
+        print(item.__dict__)
         ref = Transaction(local_copy[item.id]['ledger_transaction'])
         item.owner = ''
         assert item == ref, f"{item.__dict__} != {ref.__dict__}"
@@ -101,5 +118,6 @@ def check_same():
 
 
 def main():
+    read_all_txns()
     read_centaur()
     check_same()

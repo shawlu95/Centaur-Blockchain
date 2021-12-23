@@ -14,7 +14,8 @@ def test_ingest_account():
         pytest.skip("Skip: test_ingest_account")
 
     account = get_account()
-    centaur = get_proxy(version=config['version']['latest'])
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]["latest"])
 
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
@@ -120,8 +121,7 @@ def test_injest_transactions():
             f"Expected:{str(expected_txn.__dict__)} != Actual:{actual_txn.__dict__}"
 
         for i, entry_id in enumerate(actual_txn.entry_ids):
-            actual_entry = Entry(centaur.getEntryById(
-                entry_id, {"from": account}))
+            actual_entry = Entry(centaur.getEntryById([entry_id])[0])
             expected_entry = Entry(entry_cache[entry_id]['ledger_entry'])
             expected_entry.id = entry_id_offset + i
             assert actual_entry == expected_entry, \
@@ -224,14 +224,14 @@ def test_add_transaction():
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
-    entry_0 = Entry(centaur.getEntryById(0, {"from": account}))
+    entry_0 = Entry(centaur.getEntryById([0])[0])
     expected_entry_0 = Entry(wrap_entry(
         id=0, ledger_account_id=0, action=Action.DEBIT, amount=50
     ))
     assert entry_0 == expected_entry_0, \
         f"Expected:{str(expected_entry_0.__dict__)} != Actual:{entry_0.__dict__}"
 
-    entry_1 = Entry(centaur.getEntryById(1, {"from": account}))
+    entry_1 = Entry(centaur.getEntryById([1])[0])
     expected_entry_1 = Entry(wrap_entry(
         id=1, ledger_account_id=1, action=Action.CREDIT, amount=50
     ))

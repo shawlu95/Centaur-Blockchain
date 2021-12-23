@@ -23,12 +23,12 @@ def test_injest_accounts():
     for i, (_, val) in enumerate(account_cache.items()):
         _, _, accountType, accountName, _ = val['account']
         centaur.addLedgerAccount(accountName, accountType, {"from": account})
-        assert centaur.getUserAccountCount({"from": account}) == (i + 1)
+        assert centaur.getUserAccountCount(account.address) == (i + 1)
 
-        actual = Account(centaur.getAccountById(i, {"from": account}))
+        actual = Account(centaur.getAccountByIds([i])[0])
         expected = Account(wrap_account(
             owner=account.address, id=i, account_type=AccountType(accountType),
-            account_name=accountName, deleted=0
+            account_name=accountName, deleted=0, debit=0, credit=0
         ))
         assert actual == expected, \
             f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
@@ -54,15 +54,14 @@ def test_injest_transactions():
         centaur.addLedgerTransaction(date, ledger_entries, {"from": account})
 
         actual_txn = Transaction(
-            centaur.getTransactionById(txn_id, {"from": account}))
+            centaur.getTransactionByIds([txn_id])[0])
         expected_txn = Transaction(wrap_transaction(
             owner=account.address, date=date, id=txn_id, deleted=0, entry_ids=entries))
         assert actual_txn == expected_txn, \
             f"Expected:{str(expected_txn.__dict__)} != Actual:{actual_txn.__dict__}"
 
         for i, entry_id in enumerate(actual_txn.entry_ids):
-            actual_entry = Entry(centaur.getEntryById(
-                entry_id, {"from": account}))
+            actual_entry = Entry(centaur.getEntryByIds([entry_id])[0])
             expected_entry = Entry(entry_cache[entry_id]['ledger_entry'])
             expected_entry.id = entry_id_offset + i
             assert actual_entry == expected_entry, \
