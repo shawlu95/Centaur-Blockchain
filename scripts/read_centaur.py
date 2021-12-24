@@ -89,12 +89,13 @@ def check_same():
         open(os.path.join(remote_cache_dir, cache), 'rb'))
     local_copy = pickle.load(open(os.path.join(local_cache_dir, cache), 'rb'))
     for item in remote_copy:
-        owner, id, account_type, account_name, deleted = local_copy[
+        owner, id, account_type, account_name, _, _, _, _ = local_copy[
             item.id]['account']
         ref = Account(wrap_account(owner=owner, id=id, account_type=AccountType(
-            account_type), account_name=account_name, deleted=deleted, debit=0, credit=0))
+            account_type), account_name=account_name, transaction_count=item.transaction_count,
+            deleted=item.deleted, debit=item.debit, credit=item.credit))
         item.owner = ''
-        assert item == ref
+        assert item == ref, f"{item.__dict__} != {ref.__dict__}"
 
     cache = "transaction_cache.obj"
     remote_copy = pickle.load(

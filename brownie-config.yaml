@@ -13,7 +13,7 @@ wallets:
 networks:
   development:
     verify: False
-    latest: "CentaurV7"
+    latest: "CentaurV8"
   ganache:
     verify: False
   kovan:
@@ -41,11 +41,12 @@ networks:
     CentaurV5: '0x057B56B9228c35a309B1bd20AC9a569e72b30f20'
   polygon-test:
     verify: True
-    latest: "CentaurV7"
-    Centaur: '0x18866dC8e98BD59349607F20E3aAC27081e4498e'
-    CentaurAdmin: '0xBA14D60aA8219b127B148ffB327fEb053ab8AE6c'
+    latest: "CentaurV8"
+    Centaur: '0xAE152Adad7f695076228616d0ea5F06cF400a2b8'
+    CentaurAdmin: '0xf9915FD31fc70B9eC063A0E6785F2dc593F40f15'
     CentaurV3: '0x5FE138e58Bd8DeF2fA9FF8edE024D195aE1DA6ec'
     CentaurV4: '0x8C582894d4A566a16b1EfE1b5C53aBf8F0538Fa2'
     CentaurV5: '0x6688B3FacCB8B2318aB791BF0351C15bdD42D26E'
     CentaurV6: '0x9C705dbb442938dB80F27cAFB0d8CE49626641aD'
     CentaurV7: '0x2D5D347B79c3Ac5580Bd03DAa03e54Ed6B7566c2'
+    CentaurV8: '0xDceA5f8274Eb9e4489712CD1Ec8D929a96F89476'

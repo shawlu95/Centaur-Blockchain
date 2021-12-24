@@ -26,7 +26,7 @@ def test_add_ledger_account():
     account_0 = Account(centaur.getAccountByIds([0])[0])
     expected_0 = Account(wrap_account(
         owner=account.address, id=0, account_type=AccountType.ASSET,
-        account_name=asset_account_name, deleted=0, debit=0, credit=0
+        account_name=asset_account_name, transaction_count=0, debit=0, credit=0, deleted=0
     ))
     assert account_0 == expected_0, \
         f"Expected:{str(expected_0.__dict__)} != Actual:{account_0.__dict__}"
@@ -39,7 +39,7 @@ def test_add_ledger_account():
     account_1 = Account(centaur.getAccountByIds([1])[0])
     expected_1 = Account(wrap_account(
         owner=account.address, id=1, account_type=AccountType.LIABILITY,
-        account_name=liability_account_name, deleted=0, debit=0, credit=0
+        account_name=liability_account_name, transaction_count=0, debit=0, credit=0, deleted=0
     ))
     assert account_1 == expected_1, \
         f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
@@ -67,31 +67,31 @@ def test_add_transaction():
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
-    centaur.addLedgerTransaction(365, [
+    centaur.addLedgerTransaction(365, "foo", [
         wrap_entry(id=0, ledger_account_id=0,
-                   action=Action.DEBIT, amount=50),
-        wrap_entry(id=1, ledger_account_id=1,
                    action=Action.CREDIT, amount=50),
+        wrap_entry(id=1, ledger_account_id=1,
+                   action=Action.DEBIT, amount=50),
     ], {"from": account})
     assert centaur.getUserTransactionIds(account.address) == (0, )
     assert centaur.getUserTransactionCount(account.address) == 1
 
     txn = Transaction(centaur.getTransactionByIds([0])[0])
     expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+        owner=account.address, date=365, id=0, memo='foo', deleted=0, entry_ids=(0, 1)))
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
     entry_0 = Entry(centaur.getEntryByIds([0])[0])
     expected_entry_0 = Entry(wrap_entry(
-        id=0, ledger_account_id=0, action=Action.DEBIT, amount=50
+        id=0, ledger_account_id=0, action=Action.CREDIT, amount=50
     ))
     assert entry_0 == expected_entry_0, \
         f"Expected:{str(expected_entry_0.__dict__)} != Actual:{entry_0.__dict__}"
 
     entry_1 = Entry(centaur.getEntryByIds([1])[0])
     expected_entry_1 = Entry(wrap_entry(
-        id=1, ledger_account_id=1, action=Action.CREDIT, amount=50
+        id=1, ledger_account_id=1, action=Action.DEBIT, amount=50
     ))
     assert entry_1 == expected_entry_1, \
         f"Expected:{str(expected_entry_1.__dict__)} != Actual:{entry_1.__dict__}"
@@ -100,7 +100,7 @@ def test_add_transaction():
     account_1 = Account(centaur.getAccountByIds([1])[0])
     expected_1 = Account(wrap_account(
         owner=account.address, id=1, account_type=AccountType.LIABILITY,
-        account_name=liability_account_name, deleted=0, debit=10, credit=0
+        account_name=liability_account_name, transaction_count=1, debit=50, credit=0, deleted=0
     ))
     assert account_1 == expected_1, \
         f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
@@ -114,7 +114,7 @@ def test_add_multi_entry_transaction():
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
-    centaur.addLedgerTransaction(0, [
+    centaur.addLedgerTransaction(0, "foo", [
         wrap_entry(id=0, ledger_account_id=0,
                    action=Action.DEBIT, amount=50),
         wrap_entry(id=1, ledger_account_id=1,
@@ -126,7 +126,7 @@ def test_add_multi_entry_transaction():
     assert centaur.getUserTransactionCount(account.address) == 1
     txn = Transaction(centaur.getTransactionByIds([0])[0])
     expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=0, id=0, deleted=0, entry_ids=(0, 1, 2)))
+        owner=account.address, date=0, id=0, memo="foo", deleted=0, entry_ids=(0, 1, 2)))
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
@@ -161,7 +161,7 @@ def test_add_transaction_unbalanced():
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
-        centaur.addLedgerTransaction(365, [
+        centaur.addLedgerTransaction(365, "foo", [
             wrap_entry(id=0, ledger_account_id=0,
                        action=Action.DEBIT, amount=50),
             wrap_entry(id=1, ledger_account_id=1,
@@ -177,13 +177,13 @@ def test_delete_ledger_account():
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
-    assert centaur.getAccountReferenceCount(0, {"from": account}) == 0
+    assert Account(centaur.getAccountByIds([0])[0]).transaction_count == 0
 
     centaur.deleteAccountById(0, {"from": account})
     account_0 = Account(centaur.getAccountByIds([0])[0])
     expected_account_0 = Account(wrap_account(
         owner=account.address, id=0, account_type=AccountType.ASSET,
-        account_name="cash", deleted=1, debit=0, credit=0))
+        account_name="cash", transaction_count=0, debit=0, credit=0, deleted=1))
     assert account_0 == expected_account_0, \
         f"Expected:{str(expected_account_0.__dict__)} != Actual:{account_0.__dict__}"
 
@@ -197,7 +197,8 @@ def test_delete_ledger_account_with_reference():
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
-        assert centaur.getAccountReferenceCount(0, {"from": account}) == 1
+        assert Account(centaur.getAccountByIds([0])[
+            0]).transaction_count == 1
         centaur.deleteAccountById(0, {"from": account})
 
 
@@ -221,15 +222,15 @@ def test_delete_transaction_and_account():
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
-    assert centaur.getAccountReferenceCount(0) == 1
-    assert centaur.getAccountReferenceCount(1) == 2
+    assert Account(centaur.getAccountByIds([0])[0]).transaction_count == 1
+    assert Account(centaur.getAccountByIds([1])[0]).transaction_count == 2
     centaur.deleteTransactionById(0, {"from": account})
 
-    assert centaur.getAccountReferenceCount(0) == 0
-    assert centaur.getAccountReferenceCount(1) == 0
+    assert Account(centaur.getAccountByIds([0])[0]).transaction_count == 0
+    assert Account(centaur.getAccountByIds([1])[0]).transaction_count == 0
     txn = Transaction(centaur.getTransactionByIds([0])[0])
     expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=0, id=0, deleted=1, entry_ids=(0, 1, 2)))
+        owner=account.address, date=0, id=0, memo="foo", deleted=1, entry_ids=(0, 1, 2)))
     assert txn == expected_txn, \
         f"Expected:{expected_txn.__dict__} != Actual:{str(txn.__dict__)}"
 
@@ -237,7 +238,7 @@ def test_delete_transaction_and_account():
     account_0 = Account(centaur.getAccountByIds([0])[0])
     expected_account_0 = Account(wrap_account(
         owner=account.address, id=0, account_type=AccountType.ASSET,
-        account_name="cash", deleted=1, debit=0, credit=50))
+        account_name="cash", transaction_count=0, debit=0, credit=0, deleted=1))
     assert account_0 == expected_account_0, \
         f"Expected:{str(expected_account_0.__dict__)} != Actual:{account_0.__dict__}"
 
@@ -245,7 +246,7 @@ def test_delete_transaction_and_account():
     account_1 = Account(centaur.getAccountByIds([1])[0])
     expected_account_1 = Account(wrap_account(
         owner=account.address, id=1, account_type=AccountType.LIABILITY,
-        account_name="debt", deleted=1, debit=50, credit=0))
+        account_name="debt", transaction_count=0, debit=0, credit=0, deleted=1))
     assert account_1 == expected_account_1, \
         f"Expected:{str(expected_account_1.__dict__)} != Actual:{account_1.__dict__}"
 
@@ -263,7 +264,7 @@ def test_add_transaction_unknown_ledger_account():
     account = get_account(index=0)
 
     with pytest.raises(exceptions.VirtualMachineError):
-        centaur.addLedgerTransaction(365, [
+        centaur.addLedgerTransaction(365, "foo", [
             wrap_entry(id=0, ledger_account_id=0,
                        action=Action.DEBIT, amount=50),
             wrap_entry(id=1, ledger_account_id=3,
@@ -280,7 +281,7 @@ def test_add_transaction_not_ledger_account_owner():
     bad_account = get_account(index=1)
 
     with pytest.raises(exceptions.VirtualMachineError):
-        centaur.addLedgerTransaction(0, [
+        centaur.addLedgerTransaction(0, "foo", [
             wrap_entry(id=2, ledger_account_id=0,
                        action=Action.DEBIT, amount=50),
             wrap_entry(id=3, ledger_account_id=1,
@@ -332,10 +333,10 @@ def test_get_user_accounts():
 
     assert len(ledger_accounts) == 2
     assert Account(ledger_accounts[0]) == Account(wrap_account(owner=account.address, id=0, account_type=AccountType.ASSET,
-                                                               account_name="Cash", deleted=0, debit=0, credit=0))
+                                                               account_name="Cash", transaction_count=0, debit=0, credit=0, deleted=0))
 
     assert Account(ledger_accounts[1]) == Account(wrap_account(owner=account.address, id=1, account_type=AccountType.LIABILITY,
-                                                               account_name="Debt", deleted=0, debit=0, credit=0))
+                                                               account_name="Debt", transaction_count=0, debit=0, credit=0, deleted=0))
 
     account1 = get_account(index=1)
     centaur.addLedgerAccount("Receivable", 0, {"from": account1})
@@ -344,7 +345,7 @@ def test_get_user_accounts():
     assert Account(ledger_accounts[0]) == Account(
         wrap_account(owner=account1.address, id=2,
                      account_type=AccountType.ASSET,
-                     account_name="Receivable", deleted=0, debit=0, credit=0))
+                     account_name="Receivable", transaction_count=0, debit=0, credit=0, deleted=0))
 
 
 def test_add_ledger_transactions():
@@ -357,6 +358,7 @@ def test_add_ledger_transactions():
 
     txnSizes = [2, 3]
     dates = [365, 730]
+    memos = ["foo", "bar"]
     ledgerEntries = [
         wrap_entry(id=0, ledger_account_id=0,
                    action=Action.DEBIT, amount=10),
@@ -371,17 +373,17 @@ def test_add_ledger_transactions():
     ]
 
     centaur.addLedgerTransactions(
-        txnSizes, dates, ledgerEntries, {"from": account})
+        txnSizes, dates, memos, ledgerEntries, {"from": account})
 
     txn = Transaction(centaur.getTransactionByIds([0])[0])
     expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+        owner=account.address, date=365, id=0, memo="foo", deleted=0, entry_ids=(0, 1)))
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
     txn = Transaction(centaur.getTransactionByIds([1])[0])
     expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))
+        owner=account.address, date=730, id=1, memo="bar", deleted=0, entry_ids=(2, 3, 4)))
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
@@ -400,10 +402,10 @@ def test_get_ledger_transactions():
     assert len(entries) == 5
 
     assert Transaction(txns[0]) == Transaction(wrap_transaction(
-        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+        owner=account.address, date=365, id=0, memo="foo", deleted=0, entry_ids=(0, 1)))
 
     assert Transaction(txns[1]) == Transaction(wrap_transaction(
-        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))
+        owner=account.address, date=730, id=1, memo="bar", deleted=0, entry_ids=(2, 3, 4)))
 
     assert entries == (
         wrap_entry(id=0, ledger_account_id=0,
@@ -449,10 +451,10 @@ def test_get_transaction_by_ids():
     txns = centaur.getTransactionByIds([0, 1])
 
     assert Transaction(txns[0]) == Transaction(wrap_transaction(
-        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
+        owner=account.address, date=365, id=0, memo="foo", deleted=0, entry_ids=(0, 1)))
 
     assert Transaction(txns[1]) == Transaction(wrap_transaction(
-        owner=account.address, date=730, id=1, deleted=0, entry_ids=(2, 3, 4)))
+        owner=account.address, date=730, id=1, memo="bar", deleted=0, entry_ids=(2, 3, 4)))
 
 
 def test_transfer_transaction_by_ids():

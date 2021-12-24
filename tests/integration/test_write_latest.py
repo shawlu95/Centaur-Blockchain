@@ -23,7 +23,7 @@ def test_ingest_account():
             centaur.getAccountByIds([i])
             continue
         except:
-            _, _, accountType, accountName, _ = val['account']
+            _, _, accountType, accountName, _, _, _, _ = val['account']
             centaur.addLedgerAccount(
                 accountName, accountType, {"from": account})
 
@@ -31,7 +31,7 @@ def test_ingest_account():
             expected = Account(wrap_account(
                 owner=account.address, id=i, account_type=AccountType(
                     accountType),
-                account_name=accountName, deleted=0, debit=0, credit=0
+                account_name=accountName, transaction_count=0, debit=0, credit=0, deleted=0
             ))
             assert actual == expected, \
                 f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
@@ -57,15 +57,17 @@ def test_injest_transactions_batch():
     txn_sizes = []
     dates = []
     ledger_entries = []
+    memos = []
 
     for txn_id, val in txn_cache.items():
         if len(txn_sizes) >= limit_txn:
             break
         if txn_id not in exist_txn:
-            _, date, _, entries, _ = val['ledger_transaction']
+            _, date, _, memo, entries, _ = val['ledger_transaction']
 
             txn_sizes.append(len(entries))
             dates.append(date)
+            memos.append(memo)
             ledger_entries += [entry_cache[entry_id]['ledger_entry']
                                for entry_id in entries]
 
@@ -75,177 +77,13 @@ def test_injest_transactions_batch():
     print(ledger_entries)
 
     centaur.addLedgerTransactions(
-        txn_sizes, dates, ledger_entries, {"from": account})
+        txn_sizes, dates, memos, ledger_entries, {"from": account})
 
     assert centaur.getUserTransactionCount(
         account.address) == txn_id_offset + limit_txn
     assert centaur.getEntriesCount() == entry_id_offset + len(ledger_entries)
 
 
-def test_injest_transactions_batch_n():
-    for i in range(38):
+def test_injest_transactions_loop_batch():
+    for i in range(8):
         test_injest_transactions_batch()
-
-
-def test_injest_transactions():
-    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
-        pytest.skip("Skip: test_injest_transactions")
-
-    limit_txn = 5000
-    account = get_account()
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    txn_cache = pickle.load(open("tests/data/trans_cache.obj", 'rb'))
-    entry_cache = pickle.load(open("tests/data/entry_cache.obj", 'rb'))
-
-    entry_id_offset = centaur.getEntriesCount()
-    for txn_id, (_, val) in enumerate(txn_cache.items()):
-        try:
-            centaur.getTransactionById(txn_id, {"from": account})
-            print("Transaction exists. Do not create duplicate.")
-            continue
-        except:
-            print("Transaction does not exist. Create transaction.")
-            pass
-
-        _, date, _, entries, _ = val['ledger_transaction']
-        ledger_entries = [entry_cache[entry_id]['ledger_entry']
-                          for entry_id in entries]
-        centaur.addLedgerTransaction(date, ledger_entries, {"from": account})
-
-        actual_txn = Transaction(
-            centaur.getTransactionById(txn_id, {"from": account}))
-        expected_txn = Transaction(wrap_transaction(
-            owner=account.address, date=date, id=txn_id, deleted=0, entry_ids=entries))
-        assert actual_txn == expected_txn, \
-            f"Expected:{str(expected_txn.__dict__)} != Actual:{actual_txn.__dict__}"
-
-        for i, entry_id in enumerate(actual_txn.entry_ids):
-            actual_entry = Entry(centaur.getEntryById([entry_id])[0])
-            expected_entry = Entry(entry_cache[entry_id]['ledger_entry'])
-            expected_entry.id = entry_id_offset + i
-            assert actual_entry == expected_entry, \
-                f"Expected:{str(expected_entry.__dict__)} != Actual:{actual_entry.__dict__}"
-        entry_id_offset += len(actual_txn.entry_ids)
-
-        if txn_id >= limit_txn:
-            break
-
-
-def test_update_ledger_account():
-    if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
-        pytest.skip("Skip: test_injest_transactions")
-
-    account = get_account()
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    actual = Account(centaur.getAccountById(3))
-    expected = Account(wrap_account(owner=account.address, id=3,
-                       account_type=AccountType.ASSET, account_name="SFCU Credit", deleted=0, debit=0, credit=0))
-    assert actual == expected, \
-        f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
-
-    centaur.updateLedgerAccountType(
-        3, AccountType.LIABILITY.value, {"from": account})
-
-    actual = Account(centaur.getAccountById(3))
-    expected = Account(wrap_account(owner=account.address, id=3,
-                       account_type=AccountType.LIABILITY, account_name="SFCU Credit", deleted=0, debit=0, credit=0))
-    assert actual == expected, \
-        f"Expected:{str(expected.__dict__)} != Actual:{actual.__dict__}"
-
-
-def test_add_ledger_account_bsc():
-    pytest.skip("Skip: test_add_ledger_account")
-
-    account = get_account()
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    asset_account_name = "cash"
-    centaur.addLedgerAccount(
-        asset_account_name, AccountType.ASSET.value, {"from": account})
-    assert centaur.getUserAccountCount({"from": account}) == 1
-
-    account_0 = Account(centaur.getAccountById(0, {"from": account}))
-    expected_0 = Account(wrap_account(
-        owner=account.address, id=0, account_type=AccountType.ASSET,
-        account_name=asset_account_name, deleted=0, debit=0, credit=0
-    ))
-    assert account_0 == expected_0, \
-        f"Expected:{str(expected_0.__dict__)} != Actual:{account_0.__dict__}"
-
-    liability_account_name = "debt"
-    centaur.addLedgerAccount(
-        liability_account_name, AccountType.LIABILITY.value, {"from": account})
-    assert centaur.getUserAccountCount({"from": account}) == 2
-
-    account_1 = Account(centaur.getAccountById(1, {"from": account}))
-    expected_1 = Account(wrap_account(
-        owner=account.address, id=1, account_type=AccountType.LIABILITY,
-        account_name=liability_account_name, deleted=0, debit=0, credit=0
-    ))
-    assert account_1 == expected_1, \
-        f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
-
-    assert centaur.getUserAccounts({"from": account}) == (0, 1)
-
-
-def test_add_duplicate_ledger_account():
-    pytest.skip("Skip: test_add_duplicate_ledger_account")
-
-    account = get_account(index=0)
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    liability_account_name = "debt"
-    with pytest.raises(exceptions.VirtualMachineError):
-        # try adding duplicate account
-        centaur.addLedgerAccount(
-            liability_account_name, AccountType.LIABILITY.value, {"from": account})
-
-
-def test_add_transaction():
-    pytest.skip("Skip: test_add_transaction")
-
-    account = get_account()
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    centaur.addLedgerTransaction(365, [
-        wrap_entry(id=0, ledger_account_id=0,
-                   action=Action.DEBIT, amount=50),
-        wrap_entry(id=1, ledger_account_id=1,
-                   action=Action.CREDIT, amount=50),
-    ], {"from": account})
-    assert centaur.getUserTransactionIds({"from": account}) == (0, )
-    assert centaur.getUserTransactionCount({"from": account}) == 1
-
-    txn = Transaction(centaur.getTransactionById(0, {"from": account}))
-    expected_txn = Transaction(wrap_transaction(
-        owner=account.address, date=365, id=0, deleted=0, entry_ids=(0, 1)))
-    assert txn == expected_txn, \
-        f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
-
-    entry_0 = Entry(centaur.getEntryById([0])[0])
-    expected_entry_0 = Entry(wrap_entry(
-        id=0, ledger_account_id=0, action=Action.DEBIT, amount=50
-    ))
-    assert entry_0 == expected_entry_0, \
-        f"Expected:{str(expected_entry_0.__dict__)} != Actual:{entry_0.__dict__}"
-
-    entry_1 = Entry(centaur.getEntryById([1])[0])
-    expected_entry_1 = Entry(wrap_entry(
-        id=1, ledger_account_id=1, action=Action.CREDIT, amount=50
-    ))
-    assert entry_1 == expected_entry_1, \
-        f"Expected:{str(expected_entry_1.__dict__)} != Actual:{entry_1.__dict__}"
-
-
-def test_delete_transaction_not_owner():
-    pytest.skip("Skip: test_delete_transaction_not_owner")
-
-    bad_account = get_account(id='Candy')
-    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-
-    try:
-        centaur.deleteTransactionById(0, {"from": bad_account})
-    except ValueError:
-        pass

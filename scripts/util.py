@@ -4,14 +4,7 @@ from brownie import (
     network,
     Centaur,
     CentaurAdmin,
-    CentaurV0,
-    CentaurV1,
-    CentaurV2,
-    CentaurV3,
-    CentaurV4,
-    CentaurV5,
-    CentaurV6,
-    CentaurV7,
+    CentaurV8,
     Contract)
 from enum import Enum
 import eth_utils
@@ -57,9 +50,10 @@ class Account:
         self.id = data[1]
         self.account_type = AccountType(data[2])
         self.account_name = data[3]
-        self.deleted = data[4]
-        self.debit = data[5]
-        self.credit = data[6]
+        self.debit = data[4]
+        self.credit = data[5]
+        self.transaction_count = data[6]
+        self.deleted = data[7]
 
     def __eq__(self, other):
         return (
@@ -101,14 +95,16 @@ class Transaction:
         self.owner = data[0]
         self.date = data[1]
         self.id = data[2]
-        self.entry_ids = data[3]
-        self.deleted = data[4]
+        self.memo = data[3]
+        self.entry_ids = data[4]
+        self.deleted = data[5]
 
     def __eq__(self, other):
         return (
             self.owner == other.owner
             and self.date == other.date
             and self.id == other.id
+            and self.memo == other.memo
             and self.entry_ids == other.entry_ids
             and self.deleted == other.deleted
         )
@@ -118,12 +114,12 @@ def wrap_entry(id, ledger_account_id, action: Action, amount):
     return (id, ledger_account_id, action.value, amount)
 
 
-def wrap_account(owner, id, account_type: AccountType, account_name, deleted, debit, credit):
-    return (owner, id, account_type.value, account_name, deleted, debit, credit)
+def wrap_account(owner, id, account_type: AccountType, account_name, debit, credit, transaction_count, deleted):
+    return (owner, id, account_type.value, account_name, debit, credit, transaction_count, deleted)
 
 
-def wrap_transaction(owner, date, id, entry_ids, deleted):
-    return (owner, date, id, entry_ids, deleted)
+def wrap_transaction(owner, date, id, memo, entry_ids, deleted):
+    return (owner, date, id, memo, entry_ids, deleted)
 
 
 def get_account(index=None, id=None):
@@ -140,14 +136,7 @@ def get_account(index=None, id=None):
 
 contract_to_mock = {
     "Centaur": Centaur,
-    "CentaurV0": CentaurV0,
-    "CentaurV1": CentaurV1,
-    "CentaurV2": CentaurV2,
-    "CentaurV3": CentaurV3,
-    "CentaurV4": CentaurV4,
-    "CentaurV5": CentaurV5,
-    "CentaurV6": CentaurV6,
-    "CentaurV7": CentaurV7,
+    "CentaurV8": CentaurV8,
     "CentaurAdmin": CentaurAdmin
 }
 
@@ -158,7 +147,7 @@ def deploy_mocks(contract_name):
         Centaur.deploy({"from": account})
 
 
-def get_proxy(version="CentaurV0"):
+def get_proxy(version="CentaurV8"):
     centaur = get_contract("Centaur")
     client = Contract.from_abi(
         version, centaur.address, contract_to_mock[version].abi)
