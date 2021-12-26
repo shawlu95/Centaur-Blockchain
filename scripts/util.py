@@ -4,7 +4,7 @@ from brownie import (
     network,
     Centaur,
     CentaurAdmin,
-    CentaurV8,
+    CentaurV9,
     Contract)
 from enum import Enum
 import eth_utils
@@ -136,7 +136,7 @@ def get_account(index=None, id=None):
 
 contract_to_mock = {
     "Centaur": Centaur,
-    "CentaurV8": CentaurV8,
+    "CentaurV9": CentaurV9,
     "CentaurAdmin": CentaurAdmin
 }
 
@@ -147,7 +147,7 @@ def deploy_mocks(contract_name):
         Centaur.deploy({"from": account})
 
 
-def get_proxy(version="CentaurV8"):
+def get_proxy(version="CentaurV9"):
     centaur = get_contract("Centaur")
     client = Contract.from_abi(
         version, centaur.address, contract_to_mock[version].abi)

@@ -56,7 +56,7 @@ def test_injest_transactions():
             date, memo, ledger_entries, {"from": account})
 
         actual_txn = Transaction(
-            centaur.getTransactionByIds([txn_id])[0])
+            centaur.getTransactionByIds([txn_id])[0][0])
         expected_txn = Transaction(wrap_transaction(
             owner=account.address, date=date, id=txn_id, memo=memo, deleted=0, entry_ids=entries))
         assert actual_txn == expected_txn, \

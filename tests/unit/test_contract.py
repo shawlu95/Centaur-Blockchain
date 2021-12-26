@@ -76,7 +76,7 @@ def test_add_transaction():
     assert centaur.getUserTransactionIds(account.address) == (0, )
     assert centaur.getUserTransactionCount(account.address) == 1
 
-    txn = Transaction(centaur.getTransactionByIds([0])[0])
+    txn = Transaction(centaur.getTransactionByIds([0])[0][0])
     expected_txn = Transaction(wrap_transaction(
         owner=account.address, date=365, id=0, memo='foo', deleted=0, entry_ids=(0, 1)))
     assert txn == expected_txn, \
@@ -124,7 +124,7 @@ def test_add_multi_entry_transaction():
     ], {"from": account})
     assert centaur.getUserTransactionIds(account.address) == (0, )
     assert centaur.getUserTransactionCount(account.address) == 1
-    txn = Transaction(centaur.getTransactionByIds([0])[0])
+    txn = Transaction(centaur.getTransactionByIds([0])[0][0])
     expected_txn = Transaction(wrap_transaction(
         owner=account.address, date=0, id=0, memo="foo", deleted=0, entry_ids=(0, 1, 2)))
     assert txn == expected_txn, \
@@ -228,7 +228,7 @@ def test_delete_transaction_and_account():
 
     assert Account(centaur.getAccountByIds([0])[0]).transaction_count == 0
     assert Account(centaur.getAccountByIds([1])[0]).transaction_count == 0
-    txn = Transaction(centaur.getTransactionByIds([0])[0])
+    txn = Transaction(centaur.getTransactionByIds([0])[0][0])
     expected_txn = Transaction(wrap_transaction(
         owner=account.address, date=0, id=0, memo="foo", deleted=1, entry_ids=(0, 1, 2)))
     assert txn == expected_txn, \
@@ -375,13 +375,13 @@ def test_add_ledger_transactions():
     centaur.addLedgerTransactions(
         txnSizes, dates, memos, ledgerEntries, {"from": account})
 
-    txn = Transaction(centaur.getTransactionByIds([0])[0])
+    txn = Transaction(centaur.getTransactionByIds([0])[0][0])
     expected_txn = Transaction(wrap_transaction(
         owner=account.address, date=365, id=0, memo="foo", deleted=0, entry_ids=(0, 1)))
     assert txn == expected_txn, \
         f"Expected:{str(expected_txn.__dict__)} != Actual:{txn.__dict__}"
 
-    txn = Transaction(centaur.getTransactionByIds([1])[0])
+    txn = Transaction(centaur.getTransactionByIds([1])[0][0])
     expected_txn = Transaction(wrap_transaction(
         owner=account.address, date=730, id=1, memo="bar", deleted=0, entry_ids=(2, 3, 4)))
     assert txn == expected_txn, \
@@ -448,7 +448,7 @@ def test_get_transaction_by_ids():
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
     account = get_account(index=0)
 
-    txns = centaur.getTransactionByIds([0, 1])
+    txns = centaur.getTransactionByIds([0, 1])[0]
 
     assert Transaction(txns[0]) == Transaction(wrap_transaction(
         owner=account.address, date=365, id=0, memo="foo", deleted=0, entry_ids=(0, 1)))
@@ -457,18 +457,55 @@ def test_get_transaction_by_ids():
         owner=account.address, date=730, id=1, memo="bar", deleted=0, entry_ids=(2, 3, 4)))
 
 
-def test_transfer_transaction_by_ids():
+def test_get_balance_sheet_snapshot():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_get_user_accounts")
 
-    test_add_ledger_transactions()
+    test_add_ledger_account()
     centaur = get_proxy(config["networks"][network.show_active()]["latest"])
-    account_0 = get_account(index=0)
+    account = get_account(index=0)
 
-    txns = centaur.getTransactionByIds([0, 1])
+    txnSizes = [2, 3, 2, 2]
+    dates = [10, 20, 21, 30]
+    memos = ["t1", "t2", "t3", "t4"]
+    ledgerEntries = [
+        wrap_entry(id=0, ledger_account_id=0,
+                   action=Action.CREDIT, amount=10),
+        wrap_entry(id=1, ledger_account_id=1,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=2, ledger_account_id=0,
+                   action=Action.CREDIT, amount=20),
+        wrap_entry(id=3, ledger_account_id=1,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=4, ledger_account_id=1,
+                   action=Action.DEBIT, amount=10),
+        wrap_entry(id=5, ledger_account_id=0,
+                   action=Action.CREDIT, amount=30),
+        wrap_entry(id=6, ledger_account_id=1,
+                   action=Action.DEBIT, amount=30),
+        wrap_entry(id=7, ledger_account_id=0,
+                   action=Action.CREDIT, amount=40),
+        wrap_entry(id=8, ledger_account_id=1,
+                   action=Action.DEBIT, amount=40),
+    ]
 
-    assert Transaction(txns[0]).owner == account_0.address
-    assert Transaction(txns[1]).owner == account_0.address
+    centaur.addLedgerTransactions(
+        txnSizes, dates, memos, ledgerEntries, {"from": account})
 
-    account_1 = get_account(index=1)
-    centaur
+    assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
+        account.address, [5, 15, 25, 35])
+    assert assets == [0, -10, -60, -100]
+    assert liabilities == [0, -10, -60, -100]
+    assert equities == [0, 0, 0, 0]
+
+    assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
+        account.address, [5, 15, 25])
+    assert assets == [0, -10, -60]
+    assert liabilities == [0, -10, -60]
+    assert equities == [0, 0, 0]
+
+    assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
+        account.address, [15])
+    assert assets == [-10]
+    assert liabilities == [-10]
+    assert equities == [0]
