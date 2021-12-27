@@ -466,7 +466,7 @@ def test_get_balance_sheet_snapshot():
     account = get_account(index=0)
 
     txnSizes = [2, 3, 2, 2]
-    dates = [10, 20, 21, 30]
+    dates = [2, 4, 6, 8]
     memos = ["t1", "t2", "t3", "t4"]
     ledgerEntries = [
         wrap_entry(id=0, ledger_account_id=0,
@@ -474,38 +474,41 @@ def test_get_balance_sheet_snapshot():
         wrap_entry(id=1, ledger_account_id=1,
                    action=Action.DEBIT, amount=10),
         wrap_entry(id=2, ledger_account_id=0,
-                   action=Action.CREDIT, amount=20),
+                   action=Action.CREDIT, amount=10),
         wrap_entry(id=3, ledger_account_id=1,
-                   action=Action.DEBIT, amount=10),
+                   action=Action.DEBIT, amount=5),
         wrap_entry(id=4, ledger_account_id=1,
-                   action=Action.DEBIT, amount=10),
+                   action=Action.DEBIT, amount=5),
         wrap_entry(id=5, ledger_account_id=0,
-                   action=Action.CREDIT, amount=30),
+                   action=Action.CREDIT, amount=10),
         wrap_entry(id=6, ledger_account_id=1,
-                   action=Action.DEBIT, amount=30),
+                   action=Action.DEBIT, amount=10),
         wrap_entry(id=7, ledger_account_id=0,
-                   action=Action.CREDIT, amount=40),
+                   action=Action.CREDIT, amount=10),
         wrap_entry(id=8, ledger_account_id=1,
-                   action=Action.DEBIT, amount=40),
+                   action=Action.DEBIT, amount=10),
     ]
 
     centaur.addLedgerTransactions(
         txnSizes, dates, memos, ledgerEntries, {"from": account})
 
-    assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
-        account.address, [5, 15, 25, 35])
-    assert assets == [0, -10, -60, -100]
-    assert liabilities == [0, -10, -60, -100]
-    assert equities == [0, 0, 0, 0]
+    asset, liability, equity, temporary = centaur.getBalanceSheet(account)
+    assert (asset, liability, equity, temporary) == (-40, -40, 0, 0)
 
     assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
-        account.address, [5, 15, 25])
-    assert assets == [0, -10, -60]
-    assert liabilities == [0, -10, -60]
-    assert equities == [0, 0, 0]
+        account.address, 4, 1, 10)
+    assert assets == (0, 0, 0, 0, 0, -20, -20, -30, -30, -40)
+    assert liabilities == (0, 0, 0, 0, 0, -20, -20, -30, -30, -40)
+    assert equities == (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
-        account.address, [15])
-    assert assets == [-10]
-    assert liabilities == [-10]
-    assert equities == [0]
+        account.address, 2, 2, 5)
+    assert assets == [0, 0, 0, -30, -40]
+    assert liabilities == [0, 0, 0, -30, -40]
+    assert equities == [0, 0, 0, 0, 0]
+
+    assets, liabilities, equities = centaur.getBalanceSheetSnapshot(
+        account.address, 10, 3, 5)
+    assert assets == [0, 0, 0, -20, -40]
+    assert liabilities == [0, 0, 0, -20, -40]
+    assert equities == [0, 0, 0, 0, 0]

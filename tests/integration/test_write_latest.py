@@ -85,5 +85,5 @@ def test_injest_transactions_batch():
 
 
 def test_injest_transactions_loop_batch():
-    for i in range(8):
+    for i in range(16):
         test_injest_transactions_batch()

@@ -12,16 +12,16 @@ def deploy_centaur():
         publish_source=verify
     )
 
-    centaur_admin = CentaurAdmin.deploy(
-        {"from": account}, publish_source=verify)
+    # centaur_admin = CentaurAdmin.deploy(
+    #     {"from": account}, publish_source=verify)
 
-    centaur_proxy = Centaur.deploy(
-        centaur_implementation.address, centaur_admin.address, encode_function_data(),
-        {"from": account}, publish_source=verify)
+    # centaur_proxy = Centaur.deploy(
+    #     centaur_implementation.address, centaur_admin.address, encode_function_data(),
+    #     {"from": account}, publish_source=verify)
 
-    client = Contract.from_abi(
-        latest, centaur_proxy.address, centaur_implementation.abi)
-    return client
+    # client = Contract.from_abi(
+    #     latest, centaur_proxy.address, centaur_implementation.abi)
+    # return client
 
 
 def main():
