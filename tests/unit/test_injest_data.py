@@ -4,7 +4,7 @@ from scripts.util import (
     AccountType,
     Account, Entry, Transaction,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from scripts.deploy_centaur import deploy_centaur
+from scripts.deploy_centaur import deploy_centaur, deploy_proxy_and_admin
 from scripts.upgrade_centaur import upgrade_centaur
 from brownie import network, config
 import pickle
@@ -17,11 +17,11 @@ def test_injest_accounts():
 
     account = get_account(index=0)
     deploy_centaur()
+    deploy_proxy_and_admin()
     centaur = upgrade_centaur()
 
     account_cache = pickle.load(open("tests/data/account_cache.obj", 'rb'))
     for i, (_, val) in enumerate(account_cache.items()):
-        print(val['account'])
         _, _, accountType, accountName, _, _, _, _ = val['account']
         centaur.addLedgerAccount(accountName, accountType, {"from": account})
         assert centaur.getUserAccountCount(account.address) == (i + 1)
@@ -72,3 +72,19 @@ def test_injest_transactions():
 
         if txn_id >= limit_txn:
             break
+
+
+def test_get_recent_transactions():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_injest_transactions")
+
+    test_injest_transactions()
+
+    account = get_account(index=0)
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]["latest"])
+
+    txns, ents = centaur.getRecentTransaction(account.address, 10)
+    print(txns)
+    print(ents)
+    assert len(txns) == 10

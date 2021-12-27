@@ -4,7 +4,7 @@ from scripts.util import (
     Action, AccountType,
     Account, Entry, Transaction,
     LOCAL_BLOCKCHAIN_ENVIRONMENTS)
-from scripts.deploy_centaur import deploy_centaur
+from scripts.deploy_centaur import deploy_centaur, deploy_proxy_and_admin
 from scripts.upgrade_centaur import upgrade_centaur
 from brownie import network, exceptions, config
 import pytest
@@ -16,6 +16,7 @@ def test_add_ledger_account():
 
     account = get_account(index=0)
     deploy_centaur()
+    deploy_proxy_and_admin()
     centaur = upgrade_centaur()
 
     asset_account_name = "cash"
@@ -44,7 +45,24 @@ def test_add_ledger_account():
     assert account_1 == expected_1, \
         f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
 
+def test_update_ledger_account():
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Skip: test_add_duplicate_ledger_account")
+    test_add_ledger_account()
+    centaur = get_proxy(config["networks"][network.show_active()]["latest"])
+    account = get_account(index=0)
 
+    new_name = "cash 2"
+    centaur.updateLedgerAccount(0, new_name, {"from": account})
+    account_0 = Account(centaur.getAccountByIds([0])[0])
+    expected_0 = Account(wrap_account(
+        owner=account.address, id=0, account_type=AccountType.ASSET,
+        account_name=new_name, transaction_count=0, debit=0, credit=0, deleted=0
+    ))
+    assert account_0 == expected_0, \
+        f"Expected:{str(expected_0.__dict__)} != Actual:{account_0.__dict__}"
+
+    
 def test_add_duplicate_ledger_account():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_add_duplicate_ledger_account")
@@ -325,6 +343,7 @@ def test_get_user_accounts():
 
     account = get_account()
     deploy_centaur()
+    deploy_proxy_and_admin()
     centaur = upgrade_centaur()
 
     centaur.addLedgerAccount("Cash", 0, {"from": account})

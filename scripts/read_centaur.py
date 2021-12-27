@@ -52,6 +52,8 @@ def read_centaur():
     print(f"User {account.address} has transaction: {txn_count}")
     account_cache = list(map(lambda x: Account(
         x), centaur.getUserAccounts(account.address)))
+    for account in account_cache:
+        print(account.__dict__)
     on_chain_txns, on_chain_entries = centaur.getTransactionByIds(
         txn_ids_from_chain)
     on_chain_txns = list(map(lambda x: Transaction(x), on_chain_txns))
@@ -163,7 +165,7 @@ def serialize():
 
 
 def main():
-    read_all_txns()
+    # read_all_txns()
     read_centaur()
-    check_same()
-    serialize()
+    # check_same()
+    # serialize()
