@@ -10,6 +10,18 @@ def read_cache(path):
     return []
 
 
+def read_balance_sheet():
+    account = get_account()
+    centaur = get_proxy(
+        version=config["networks"][network.show_active()]["latest"])
+
+    asset, liability, equity, temp = centaur.getBalanceSheet(account.address)
+    assert asset == liability + equity + temp
+
+    snapshot = centaur.getBalanceSheetSnapshot(account.address, 100, 10, 10)
+    print(snapshot)
+
+
 def read_all_txns():
     account = get_account()
     centaur = get_proxy(
@@ -165,7 +177,8 @@ def serialize():
 
 
 def main():
+    read_balance_sheet()
     # read_all_txns()
-    read_centaur()
+    # read_centaur()
     # check_same()
     # serialize()
