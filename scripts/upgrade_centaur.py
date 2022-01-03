@@ -4,7 +4,7 @@ from brownie import config, network, Contract
 
 def upgrade_centaur():
     latest_version = config["networks"][network.show_active()]["latest"]
-
+    print("latest_version", latest_version)
     account = get_account()
     centaur_implementation = get_contract(latest_version)
     centaur_proxy = get_contract("Centaur")

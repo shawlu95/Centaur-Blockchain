@@ -45,6 +45,7 @@ def test_add_ledger_account():
     assert account_1 == expected_1, \
         f"Expected:{str(expected_1.__dict__)} != Actual:{account_1.__dict__}"
 
+
 def test_update_ledger_account():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_add_duplicate_ledger_account")
@@ -62,7 +63,7 @@ def test_update_ledger_account():
     assert account_0 == expected_0, \
         f"Expected:{str(expected_0.__dict__)} != Actual:{account_0.__dict__}"
 
-    
+
 def test_add_duplicate_ledger_account():
     if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         pytest.skip("Skip: test_add_duplicate_ledger_account")
