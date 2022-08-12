@@ -31,20 +31,20 @@ if __name__ == '__main__':
                      "polygon-test", "LedgerAccount.csv"), header=None)
     df.columns = ['owner', 'id', 'accountType', 'accountName',
                   'debit', 'credit', 'transactionCount', 'deleted']
-    df.to_sql('LedgerAccount', db.engine, if_exists='append', index=False)
+    df.to_sql('LedgerAccount', db.engine, if_exists='replace', index=False)
 
     df = pd.read_csv(os.path.join(os.getcwd(), "..", "data",
                      "polygon-test", "LedgerEntry.csv"), header=None)
     df.columns = ['id', 'ledgerAccountId', 'action', 'amount']
-    df.to_sql('LedgerEntry', db.engine, if_exists='append', index=False)
+    df.to_sql('LedgerEntry', db.engine, if_exists='replace', index=False)
 
     df = pd.read_csv(os.path.join(os.getcwd(), "..", "data",
                      "polygon-test", "TransactionEntryLink.csv"), header=None)
     df.columns = ['transactionId', 'entryId']
     df.to_sql('TransactionEntryLink', db.engine,
-              if_exists='append', index=False)
+              if_exists='replace', index=False)
 
     df = pd.read_csv(os.path.join(os.getcwd(), "..", "data",
                      "polygon-test", "LedgerTransaction.csv"), header=None)
     df.columns = ['owner', 'date', 'id', 'memo', 'deleted']
-    df.to_sql('LedgerTransaction', db.engine, if_exists='append', index=False)
+    df.to_sql('LedgerTransaction', db.engine, if_exists='replace', index=False)
